@@ -16,13 +16,10 @@ limitations under the License.
 
 package main
 
-/*import (
-	"errors"
-	"fmt"
-
+import (
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
-*/
+
 // Customer example simple Chaincode implementation
 type customer struct {
 }
@@ -32,4 +29,9 @@ type customer struct {
 // NewCertHandler creates a new reference to CertHandler
 func NewCustomer() *customer {
     return &customer{}
+}
+
+func (t *customer) purchase(stub shim.ChaincodeStubInterface) ([]byte, error) {
+    stub.PutState("Customer",[]byte("Purchased the Product"))
+    return nil,nil
 }

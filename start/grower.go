@@ -77,8 +77,11 @@ func (t *Grower) Invoke(stub shim.ChaincodeStubInterface, function string, args 
         // Order Placed from Dispensary
         return t.dispensaryPlacedOrder(stub, args)
     }else if function == "shipmentBygrower" {
-        // Transfer product to Dispensary
+        // Grower shippment to Dispensary
         return t.shipmentBygrower(stub, args)
+    }else if function == "customerPurchase" {
+        // Purchased by Customer
+        return t.customerPurchase(stub)
     }
     return nil, errors.New("Received unknown function invocation")
 }
@@ -131,6 +134,12 @@ func (t *Grower) dispensaryPlacedOrder(stub shim.ChaincodeStubInterface, args []
 
 func (t *Grower) shipmentBygrower(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
       ddispensary.receivedShippmentOrder(stub,args)
+        return nil,nil
+}
+
+
+func (t *Grower) customerPurchase(stub shim.ChaincodeStubInterface) ([]byte, error) {
+      ccustomer.purchase(stub)
         return nil,nil
 }
 
