@@ -35,10 +35,10 @@ func NewCustomer() *customer {
 
 func (t *customer) purchase(stub shim.ChaincodeStubInterface,args []string) ([]byte, error) {
      if len(args) != 1 {
-    error := Error{"Incorrect number of arguments. Expecting 3"}
+    error := Error{"Incorrect number of arguments. Expecting 1"}
     errorMarshal, _ := json.Marshal(error)
-    stub.SetEvent("receiveOrderError", errorMarshal)
-    return nil, errors.New("Incorrect number of arguments. Expecting 3")
+    stub.SetEvent("purchase", errorMarshal)
+    return nil, errors.New("Incorrect number of arguments. Expecting 1")
   }
     stub.PutState(args[0],[]byte("Purchased the Product"))
     return nil,nil
