@@ -19,100 +19,59 @@ package main
 import (
 	"errors"
 	"fmt"
-
+"encoding/json"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
 // Dispensary example simple Chaincode implementation
-type Dispensary struct {
+type dispensary struct {
 }
 
-/*// ============================================================================================================================
-// Main
-// ============================================================================================================================
-func main() {
-    err := shim.Start(new(Dispensary))
-    if err != nil {
-        fmt.Printf("Error starting Simple chaincode: %s", err)
-    }
-}*/
-
-// Init resets all the things
-func (t *Dispensary) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
-    if len(args) != 1 {
-        return nil, errors.New("Incorrect number of arguments. Expecting 1")
-    }
-
-    err := stub.PutState("hello_world", []byte(args[0]))
-    if err != nil {
-        return nil, err
-    }
-
-    return nil, nil
+// NewCertHandler creates a new reference to CertHandler
+func NewDispensary() *dispensary {
+    return &dispensary{}
 }
 
-// Invoke is our entry point to invoke a chaincode function
-func (t *Dispensary) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
-    fmt.Println("invoke is running " + function)
+func (t *dispensary) placedOrder(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+ if len(args) != 3 {
+    error := Error{"Incorrect number of arguments. Expecting 3"}
+    errorMarshal, _ := json.Marshal(error)
+    stub.SetEvent("receiveOrderError", errorMarshal)
+    return nil, errors.New("Incorrect number of arguments. Expecting 3")
+  }
+  // ==== Input sanitation ====
+  fmt.Println("- start Receiving Order")
+  if len(args[0]) <= 0 {
+    error := Error{"1st argument must be a non-empty string"}
+    errorMarshal, _ := json.Marshal(error)
+    stub.SetEvent("receiveOrderError", errorMarshal)
+    return nil, errors.New("1st argument must be a non-empty string")
+  }
+  if len(args[1]) <= 0 {
+    error := Error{"2nd argument must be a non-empty string"}
+    errorMarshal, _ := json.Marshal(error)
+    stub.SetEvent("receiveOrderError", errorMarshal)
+    return nil, errors.New("2nd argument must be a non-empty string")
+  }
+  if len(args[2]) <= 0 {
+    error := Error{"3rd argument must be a non-empty string"}
+    errorMarshal, _ := json.Marshal(error)
+    stub.SetEvent("receiveOrderError", errorMarshal)
+    return nil, errors.New("3rd argument must be a non-empty string")
+  }
 
-    // Handle different functions
-    if function == "init" {
-        return t.Init(stub, "init", args)
-    } else if function == "write" {
-        return t.write(stub, args)
-    }
-    fmt.Println("invoke did not find func: " + function)
+id:= args[0]
+  /*  product:= args[1]
+    quantity:= args[2]*/
 
-    return nil, errors.New("Received unknown function invocation")
+  /*  var data = {"dispensaryDetails":id,"product":product,"quantity":quantity}
+    orderAsJson,err = json.Marshal(data)*/
+    stub.PutState(id,[]byte("Dispensary Place Order"))
+    return nil,nil
 }
 
-//Write
-func (t *Dispensary) write(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-    var name, value string
-    var err error
-    fmt.Println("running write()")
-
-    if len(args) != 2 {
-        return nil, errors.New("Incorrect number of arguments. Expecting 2. name of the variable and value to set")
-    }
-
-    name = args[0]                            //rename for fun
-    value = args[1]
-    err = stub.PutState(name, []byte(value))  //write the variable into the chaincode state
-    if err != nil {
-        return nil, err
-    }
-    return nil, nil
-}
-
-// Query is our entry point for queries
-func (t *Dispensary) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
-    fmt.Println("query is running " + function)
-
-    // Handle different functions
-    if function == "read" {                            //read a variable
-        return t.read(stub, args)
-    }
-    fmt.Println("query did not find func: " + function)
-
-    return nil, errors.New("Received unknown function query")
-}
-
-//Read
-func (t *Dispensary) read(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-    var name, jsonResp string
-    var err error
-
-    if len(args) != 1 {
-        return nil, errors.New("Incorrect number of arguments. Expecting name of the var to query")
-    }
-
-    name = args[0]
-    valAsbytes, err := stub.GetState(name)
-    if err != nil {
-        jsonResp = "{\"Error\":\"Failed to get state for " + name + "\"}"
-        return nil, errors.New(jsonResp)
-    }
-
-    return valAsbytes, nil
+func (t *dispensary) receivedShippmentOrder(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	id:= args[0]
+    stub.PutState(id,[]byte("Received Shippment from Grower"))
+    return nil,nil
 }

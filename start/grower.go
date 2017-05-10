@@ -19,13 +19,22 @@ package main
 import (
 	"errors"
 	"fmt"
-
+"encoding/json"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
 // Grower example simple Chaincode implementation
 type Grower struct {
 }
+
+type Error struct{
+  Err string
+}
+
+
+var ddispensary = NewDispensary()
+var ccustomer = NewCustomer()
+
 
 // ============================================================================================================================
 // Main
@@ -36,6 +45,7 @@ func main() {
         fmt.Printf("Error starting Simple chaincode: %s", err)
     }
 }
+
 
 // Init resets all the things
 func (t *Grower) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
@@ -51,68 +61,127 @@ func (t *Grower) Init(stub shim.ChaincodeStubInterface, function string, args []
     return nil, nil
 }
 
+
 // Invoke is our entry point to invoke a chaincode function
 func (t *Grower) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
-    fmt.Println("invoke is running " + function)
+    fmt.Println("********************************Invoke****************************************")
 
-    // Handle different functions
-    if function == "init" {
-        return t.Init(stub, "init", args)
-    } else if function == "write" {
-        return t.write(stub, args)
+    //   Handle different functions
+    if function == "receiveOrder" {
+        // Receive Order from Dispensary
+        return t.receiveOrder(stub, args)
+    } else if function == "shipOrder" {
+        // Transfer product to Dispensary
+        return t.shipOrder(stub,args)
+    }else if function == "dispensaryPlacedOrder" {
+        // Order Placed from Dispensary
+        return t.dispensaryPlacedOrder(stub, args)
+    }else if function == "shipmentBygrower" {
+        // Transfer product to Dispensary
+        return t.shipmentBygrower(stub, args)
     }
-    fmt.Println("invoke did not find func: " + function)
-
     return nil, errors.New("Received unknown function invocation")
 }
 
-//Write
-func (t *Grower) write(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-    var name, value string
-    var err error
-    fmt.Println("running write()")
 
-    if len(args) != 2 {
-        return nil, errors.New("Incorrect number of arguments. Expecting 2. name of the variable and value to set")
+func (t *Grower) receiveOrder(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+ if len(args) != 3 {
+    error := Error{"Incorrect number of arguments. Expecting 3"}
+    errorMarshal, _ := json.Marshal(error)
+    stub.SetEvent("receiveOrderError", errorMarshal)
+    return nil, errors.New("Incorrect number of arguments. Expecting 3")
+  }
+  // ==== Input sanitation ====
+  fmt.Println("- start Receiving Order")
+  if len(args[0]) <= 0 {
+    error := Error{"1st argument must be a non-empty string"}
+    errorMarshal, _ := json.Marshal(error)
+    stub.SetEvent("receiveOrderError", errorMarshal)
+    return nil, errors.New("1st argument must be a non-empty string")
+  }
+  if len(args[1]) <= 0 {
+    error := Error{"2nd argument must be a non-empty string"}
+    errorMarshal, _ := json.Marshal(error)
+    stub.SetEvent("receiveOrderError", errorMarshal)
+    return nil, errors.New("2nd argument must be a non-empty string")
+  }
+  if len(args[2]) <= 0 {
+    error := Error{"3rd argument must be a non-empty string"}
+    errorMarshal, _ := json.Marshal(error)
+    stub.SetEvent("receiveOrderError", errorMarshal)
+    return nil, errors.New("3rd argument must be a non-empty string")
+  }
+
+id:= args[0]
+    /*product:= args[1]
+    quantity:= args[2]*/
+
+    /*var data = {"dispensaryDetails":id,"product":product,"quantity":quantity}
+    orderAsJson,err = json.Marshal(data)*/
+    stub.PutState(id,[]byte("Grower Received Order"))
+    return nil,nil
+}
+
+
+func (t *Grower) dispensaryPlacedOrder(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+         ddispensary.placedOrder(stub, args)
+        return nil,nil
+}
+
+
+func (t *Grower) shipmentBygrower(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+      ddispensary.receivedShippmentOrder(stub,args)
+        return nil,nil
+}
+
+
+func (t *Grower) getOrder(stub shim.ChaincodeStubInterface, args []string) ([]byte,error) {
+    fmt.Println("getCircle called")
+    if len(args) !=1{
+        return nil,errors.New("Incorrect number of arguments. Expecting 1")
     }
-
-    name = args[0]                            //rename for fun
-    value = args[1]
-    err = stub.PutState(name, []byte(value))  //write the variable into the chaincode state
+    Id := args[0]
+    order, err := stub.GetState(Id)
     if err != nil {
-        return nil, err
+        return nil,err
     }
-    return nil, nil
+
+    return order,nil
+}
+
+func (t *Grower) shipOrder(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+
+if len(args) != 2 {
+    error := Error{"Incorrect number of arguments. Expecting 2"}
+    errorMarshal, _ := json.Marshal(error)
+    stub.SetEvent("transferOrderError", errorMarshal)
+    return nil, errors.New("Incorrect number of arguments. Expecting 2")
+  }
+    id:= args[0]
+    orderAsJson,err := stub.GetState(id)
+if err != nil {
+        return nil,err
+    }
+    if len(orderAsJson)==0{
+        fmt.Println("Order doesnt exists")
+        error := Error{"Order doesnt exists"}
+        errorMarshal, _ := json.Marshal(error)
+        stub.SetEvent("transferOrderError", errorMarshal)
+        return nil, errors.New("Order doesnt exists")
+    }
+
+    /*var order
+    json.Unmarshal(orderAsJson,&order)*/
+    stub.PutState(id,[]byte("Shipped By Grower"))
+    return nil,nil
 }
 
 // Query is our entry point for queries
 func (t *Grower) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
-    fmt.Println("query is running " + function)
+    fmt.Println("Query is running " + function)
 
-    // Handle different functions
-    if function == "read" {                            //read a variable
-        return t.read(stub, args)
-    }
-    fmt.Println("query did not find func: " + function)
-
-    return nil, errors.New("Received unknown function query")
-}
-
-//Read
-func (t *Grower) read(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-    var name, jsonResp string
-    var err error
-
-    if len(args) != 1 {
-        return nil, errors.New("Incorrect number of arguments. Expecting name of the var to query")
-    }
-
-    name = args[0]
-    valAsbytes, err := stub.GetState(name)
-    if err != nil {
-        jsonResp = "{\"Error\":\"Failed to get state for " + name + "\"}"
-        return nil, errors.New(jsonResp)
-    }
-
-    return valAsbytes, nil
+    if function =="getOrder"{
+            return t.getOrder(stub,args)
+        }
+    return nil,errors.New("Received unknown function query")
 }
