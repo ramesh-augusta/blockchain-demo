@@ -71,6 +71,12 @@ id:= args[0]
 }
 
 func (t *dispensary) receivedShippmentOrder(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	 if len(args) != 1 {
+    error := Error{"Incorrect number of arguments. Expecting 3"}
+    errorMarshal, _ := json.Marshal(error)
+    stub.SetEvent("receiveOrderError", errorMarshal)
+    return nil, errors.New("Incorrect number of arguments. Expecting 3")
+  }
 	id:= args[0]
     stub.PutState(id,[]byte("Received Shippment from Grower"))
     return nil,nil

@@ -18,6 +18,8 @@ package main
 
 import (
 	"github.com/hyperledger/fabric/core/chaincode/shim"
+        "errors"
+"encoding/json"
 )
 
 // Customer example simple Chaincode implementation
@@ -31,7 +33,13 @@ func NewCustomer() *customer {
     return &customer{}
 }
 
-func (t *customer) purchase(stub shim.ChaincodeStubInterface) ([]byte, error) {
-    stub.PutState("Customer",[]byte("Purchased the Product"))
+func (t *customer) purchase(stub shim.ChaincodeStubInterface,args []string) ([]byte, error) {
+     if len(args) != 1 {
+    error := Error{"Incorrect number of arguments. Expecting 3"}
+    errorMarshal, _ := json.Marshal(error)
+    stub.SetEvent("receiveOrderError", errorMarshal)
+    return nil, errors.New("Incorrect number of arguments. Expecting 3")
+  }
+    stub.PutState(args[0],[]byte("Purchased the Product"))
     return nil,nil
 }
