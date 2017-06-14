@@ -190,7 +190,28 @@ func (t *Grower) Query(stub shim.ChaincodeStubInterface, function string, args [
     fmt.Println("Query is running " + function)
 
     if function =="getOrder"{
-            return t.getOrder(stub,args)
-        }
+       return t.getOrder(stub,args)
+    }
+	
+	
+	
+    if function == "getdispensaryPlacedOrder" {
+        var key, jsonResp string
+        var err error
+         if len(args) != 1 {
+                return nil, errors.New("Incorrect number of arguments. Expecting name of the key to query")
+            }
+
+            key = args[0]
+            valAsbytes, err := stub.GetState(key)
+            if err != nil {
+                jsonResp = "{\"Error\":\"Failed to get state for " + key + "\"}"
+                return nil, errors.New(jsonResp)
+            }
+
+            return valAsbytes, nil
+        //return nil, errors.New("Invalid query function name. Expecting \"query\"")
+    }
+	
     return nil,errors.New("Received unknown function query")
 }
